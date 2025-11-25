@@ -1,0 +1,45 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vite
+dist/
+dist-ssr/
+*.local
+
+# Electron
+/.webpack
+/.vite-electron
+/out
+/build
+/release
+*.asar
+
+# Logs
+logs/
+*.log
+
+# Editor
+.vscode/
+.idea/
+*.sw?
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Cache
+.cache/
+.vite/
+.eslintcache
