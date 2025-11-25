@@ -14,7 +14,7 @@
 - Before implementing a component, look for similar components and copy their styles and/or approach.
 - When setting margins, paddings, gaps and so on, prefer the size `1`, `2`, `4`, and `6`
 - For recurring complex styles, use `@apply` in `App.vue`.
-- User color sparingly, and only for primary/important elements or those that must use color to communicate (e.g. a warning)
+- Use color sparingly, and only for primary/important elements or those that must use color to communicate (e.g. a warning)
 - Make sure any given layout works well on mobile and desktop!
 
 - Use this pattern for form inputs:
@@ -32,3 +32,5 @@
 ```
 
 - KEEP. IT. SIMPLE.
+
+- Use TYPESCRIPT with safe, well-structured code.
