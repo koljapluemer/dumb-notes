@@ -1,29 +1,59 @@
 {
   "name": "dumb-notes",
   "version": "1.0.0",
-  "description": "",
+  "description": "Minimal plaintext note-taker (Electron + Vue)",
+  "homepage": "https://example.com/dumb-notes",
   "main": "dist/main/main.js",
   "scripts": {
     "start": "npm run build:main && ELECTRON_DISABLE_SANDBOX=1 electron .",
     "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "cd src/renderer && npm run build",
+    "copy:renderer": "rm -rf dist/renderer && mkdir -p dist && cp -r src/renderer/dist dist/renderer",
+    "build:appimage": "npm run build:renderer && npm run build:main && npm run copy:renderer && electron-builder --linux AppImage",
+    "build:deb": "npm run build:renderer && npm run build:main && npm run copy:renderer && electron-builder --linux deb",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": {
+    "name": "Dumb Notes",
+    "email": "dev@example.com"
+  },
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@types/node": "^22.10.2",
     "@vitejs/plugin-vue": "^6.0.2",
-    "electron-builder": "^26.0.12",
-    "typescript": "^5.9.3",
-    "vite": "^7.2.4",
-    "@types/node": "^22.10.2"
-  },
-  "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
     "daisyui": "^5.5.5",
     "electron": "^39.2.3",
+    "electron-builder": "^26.0.12",
     "lucide-vue-next": "^0.554.0",
-    "tailwindcss": "^4.1.17"
+    "tailwindcss": "^4.1.17",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.4"
+  },
+  "dependencies": {},
+  "build": {
+    "appId": "com.example.dumbnotes",
+    "productName": "Dumb Notes",
+    "files": [
+      "dist/main/**/*",
+      "dist/renderer/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "category": "Utility",
+      "maintainer": "Kolja Sam <contact@koljasam.com>",
+      "icon": "logo.png",
+      "executableArgs": [
+        "--no-sandbox"
+      ]
+    }
   }
 }

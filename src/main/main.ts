@@ -2,6 +2,10 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
 
+// Disable sandbox inside AppImage/packaged builds to avoid chrome-sandbox permission requirement
+process.env.ELECTRON_DISABLE_SANDBOX = '1'
+app.commandLine.appendSwitch('no-sandbox')
+
 type Settings = {
   folderPath: string
   shortcuts: Record<string, string>
@@ -85,7 +89,8 @@ function createWindow() {
     void mainWindow.loadURL(url)
     mainWindow.webContents.openDevTools({ mode: 'detach' })
   } else {
-    const indexHtml = path.join(__dirname, '../renderer/dist/index.html')
+    // In packaged app, renderer bundle is staged at dist/renderer/*
+    const indexHtml = path.join(__dirname, '../renderer/index.html')
     void mainWindow.loadFile(indexHtml)
   }
 }
