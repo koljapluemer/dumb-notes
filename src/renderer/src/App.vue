@@ -53,7 +53,6 @@ const showSettings = ref(false)
 const toasts = ref<Toast[]>([])
 let toastId = 1
 
-const externalPromptPending = ref(false)
 let saveTimer: number | undefined
 
 const shortcuts = computed(() => {
@@ -207,21 +206,6 @@ async function selectFolder() {
   }
 }
 
-function handleNotesChanged(payload: { eventType: string; title: string; source?: 'internal' | 'external' }) {
-  if (payload.source === 'internal') return
-  void refreshNotes()
-  if (payload.title === current.originalTitle && payload.eventType === 'change') {
-    if (externalPromptPending.value) return
-    externalPromptPending.value = true
-    const reload = window.confirm(`"${payload.title}" changed on disk. Reload?`)
-    externalPromptPending.value = false
-    if (reload) void openNote(payload.title)
-  }
-  if (payload.title === current.originalTitle && payload.eventType === 'rename') {
-    addToast('Note changed on disk', 'info')
-  }
-}
-
 function handleKeydown(e: KeyboardEvent) {
   const combo = (e.ctrlKey ? 'Ctrl+' : '') + (e.metaKey ? 'Meta+' : '') + e.key.toUpperCase()
   const match = (expected: string) => expected && combo === expected.toUpperCase()
@@ -261,48 +245,32 @@ async function saveShortcuts() {
 onMounted(async () => {
   await loadSettings()
   await refreshNotes()
-  api.onNotesChanged(handleNotesChanged)
   window.addEventListener('keydown', handleKeydown)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
-  api.removeNotesChanged(handleNotesChanged)
   if (saveTimer) window.clearTimeout(saveTimer)
 })
 </script>
 
 <template>
   <main class="h-screen flex flex-col gap-4 p-4">
-    <h1>Notes</h1>
-
     <div class="flex-1 flex gap-4 overflow-hidden">
       <aside class="w-80 flex flex-col gap-4 h-full">
         <fieldset class="fieldset">
           <label for="search" class="label">Search</label>
-          <input
-            id="search"
-            v-model="search"
-            type="text"
-            name="search"
-            class="input"
-            placeholder="Find note"
-          />
+          <input id="search" v-model="search" type="text" name="search" class="input" placeholder="Find note" />
         </fieldset>
 
         <fieldset class="fieldset">
-          <label for="sort" class="label">Sort</label>
           <select id="sort" v-model="sortMode" class="select select-bordered w-full">
-            <option value="updated">Updated (newest)</option>
-            <option value="created">Created (newest)</option>
-            <option value="alpha">Alphabetical</option>
+            <option value="updated">↓ Updated (newest)</option>
+            <option value="created">↓ Created (newest)</option>
+            <option value="alpha">↓ Alphabetical</option>
           </select>
         </fieldset>
 
-        <div class="flex justify-between items-center">
-          <button class="btn btn-primary btn-sm" @click="showOpenPalette = true">Open</button>
-          <button class="btn btn-outline btn-sm" @click="showSettings = true">Settings</button>
-        </div>
 
         <div class="flex-1 overflow-auto bg-base-100 rounded-box border border-base-200">
           <ul class="menu">
@@ -313,30 +281,20 @@ onBeforeUnmount(() => {
             </li>
           </ul>
         </div>
+
+        <button class="btn btn-outline btn-sm" @click="showSettings = true">Settings</button>
+
       </aside>
 
-      <section class="flex-1 flex flex-col gap-4 min-w-0 min-h-0">
+      <section class="flex-1 flex flex-col gap-4 min-w-0 w-full h-full min-h-0">
         <fieldset class="fieldset">
           <label for="note-title" class="label">Title</label>
-          <input
-            id="note-title"
-            v-model="current.title"
-            type="text"
-            name="note-title"
-            class="input"
-            placeholder="Untitled"
-          />
+          <input id="note-title" v-model="current.title" type="text" name="note-title" class="input"
+            placeholder="Untitled" />
         </fieldset>
 
-        <fieldset class="fieldset flex-1 min-h-0">
-          <label for="note-body" class="label">Body</label>
-          <textarea
-            id="note-body"
-            v-model="current.body"
-            class="textarea textarea-bordered h-full min-h-[50vh] resize-none"
-            placeholder="Start typing..."
-          />
-        </fieldset>
+        <textarea id="note-body" v-model="current.body"
+          class="textarea textarea-bordered h-full min-h-[50vh] resize-none w-full" placeholder="Start typing..." />
       </section>
     </div>
 
@@ -345,32 +303,20 @@ onBeforeUnmount(() => {
       <div class="modal-box max-w-xl">
         <h3 class="font-bold text-lg">Open note</h3>
         <div class="mt-2 space-y-2">
-          <input
-            v-model="search"
-            type="text"
-            class="input input-bordered w-full"
-            placeholder="Type to search or create"
-            @keyup.enter="confirmOpenPalette"
-          />
+          <input v-model="search" type="text" class="input input-bordered w-full" placeholder="Type to search or create"
+            @keyup.enter="confirmOpenPalette" />
           <ul class="menu bg-base-100 rounded-box border border-base-200 max-h-64 overflow-auto">
-            <li
-              v-for="note in filteredNotes.slice(0, 8)"
-              :key="note.title"
-              @click="
-                openNote(note.title);
-                showOpenPalette = false;
-              "
-            >
+            <li v-for="note in filteredNotes.slice(0, 8)" :key="note.title" @click="
+              openNote(note.title);
+            showOpenPalette = false;
+            ">
               <a>{{ note.title }}</a>
             </li>
             <li v-if="filteredNotes.length === 0 && search">
-              <a
-                class="text-primary"
-                @click="
-                  newNoteWithTitle(search);
-                  showOpenPalette = false;
-                "
-              >
+              <a class="text-primary" @click="
+                newNoteWithTitle(search);
+              showOpenPalette = false;
+              ">
                 Create "{{ search }}"
               </a>
             </li>
@@ -388,12 +334,10 @@ onBeforeUnmount(() => {
         <h3 class="font-bold text-lg">Commands</h3>
         <ul class="menu bg-base-100 rounded-box border border-base-200 mt-3">
           <li>
-            <a
-              @click="
-                deleteCurrent();
-                showCommandPalette = false;
-              "
-            >
+            <a @click="
+              deleteCurrent();
+            showCommandPalette = false;
+            ">
               Delete current note
             </a>
           </li>
@@ -448,16 +392,11 @@ onBeforeUnmount(() => {
 
     <!-- Toasts -->
     <div class="toast toast-end toast-top">
-      <div
-        v-for="t in toasts"
-        :key="t.id"
-        class="alert"
-        :class="{
-          'alert-error': t.tone === 'error',
-          'alert-success': t.tone === 'success',
-          'alert-warning': t.tone === 'warning',
-        }"
-      >
+      <div v-for="t in toasts" :key="t.id" class="alert" :class="{
+        'alert-error': t.tone === 'error',
+        'alert-success': t.tone === 'success',
+        'alert-warning': t.tone === 'warning',
+      }">
         <span>{{ t.message }}</span>
       </div>
     </div>

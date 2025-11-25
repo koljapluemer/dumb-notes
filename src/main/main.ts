@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, WebContents } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
 
@@ -53,8 +53,6 @@ const RESERVED_NAMES = new Set([
 ])
 
 let mainWindow: BrowserWindow | null = null
-let folderWatcher: fs.FSWatcher | null = null
-
 const isDev = process.env.VITE_DEV_SERVER_URL !== undefined
 
 app.whenReady().then(() => {
@@ -188,28 +186,6 @@ function deleteNote(folderPath: string, title: string): void {
   fs.unlinkSync(filePath)
 }
 
-function emitNotesChange(eventType: string, title: string, source: 'internal' | 'external' = 'external') {
-  if (!mainWindow) return
-  mainWindow.webContents.send('notes-changed', { eventType, title, source })
-}
-
-function watchFolder(folderPath: string) {
-  if (folderWatcher) {
-    folderWatcher.close()
-    folderWatcher = null
-  }
-  if (!folderPath) return
-  try {
-    folderWatcher = fs.watch(folderPath, { recursive: false }, (eventType, filename) => {
-      if (!filename || !filename.endsWith(NOTE_EXT)) return
-      const title = filename.slice(0, -NOTE_EXT.length)
-      emitNotesChange(eventType, title, 'external')
-    })
-  } catch (err) {
-    console.error('watch error', err)
-  }
-}
-
 ipcMain.handle('select-folder', async () => {
   const res = await dialog.showOpenDialog(mainWindow!, {
     properties: ['openDirectory', 'createDirectory'],
@@ -217,19 +193,16 @@ ipcMain.handle('select-folder', async () => {
   if (res.canceled || res.filePaths.length === 0) return null
   const folderPath = res.filePaths[0]
   writeSettings({ folderPath })
-  watchFolder(folderPath)
   return folderPath
 })
 
 ipcMain.handle('get-settings', () => {
   const settings = readSettings()
-  watchFolder(settings.folderPath)
   return settings
 })
 
 ipcMain.handle('set-settings', (_e, next: Partial<Settings>) => {
   const saved = writeSettings(next)
-  if (next.folderPath !== undefined) watchFolder(saved.folderPath)
   return saved
 })
 
@@ -246,13 +219,11 @@ ipcMain.handle('read-note', (_e, title: string) => {
 ipcMain.handle('save-note', (_e, payload: SavePayload) => {
   const { folderPath } = readSettings()
   const saved = saveNote(folderPath, payload)
-  emitNotesChange('change', saved.title, 'internal')
   return saved
 })
 
 ipcMain.handle('delete-note', (_e, title: string) => {
   const { folderPath } = readSettings()
   deleteNote(folderPath, title)
-  emitNotesChange('delete', title)
   return true
 })
