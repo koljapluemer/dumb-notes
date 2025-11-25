@@ -142,6 +142,20 @@ function newNoteWithTitle(title: string) {
   current.updatedAt = undefined
 }
 
+function createNewNote() {
+  const title = window.prompt('New note title?') || ''
+  const trimmed = title.trim()
+  if (!trimmed) {
+    addToast('Title required', 'warning')
+    return
+  }
+  if (!safeTitle(trimmed)) {
+    addToast('Unsafe or invalid title', 'warning')
+    return
+  }
+  newNoteWithTitle(trimmed)
+}
+
 async function deleteCurrent() {
   if (!current.title) return
   const confirmed = window.confirm(`Delete "${current.title}"?`)
@@ -282,7 +296,10 @@ onBeforeUnmount(() => {
           </ul>
         </div>
 
-        <button class="btn btn-outline btn-sm" @click="showSettings = true">Settings</button>
+        <div class="flex flex-col gap-2">
+          <button class="btn btn-primary btn-sm" @click="createNewNote">New note</button>
+          <button class="btn btn-outline btn-sm" @click="showSettings = true">Settings</button>
+        </div>
 
       </aside>
 
