@@ -1,7 +1,7 @@
 {
   "name": "dumb-notes",
   "version": "1.0.0",
-  "description": "Minimal plaintext note-taker (Electron + Vue)",
+  "description": "Minimal plaintext note-taking tool with no bells and no whistles",
   "homepage": "https://example.com/dumb-notes",
   "main": "dist/main/main.js",
   "scripts": {
@@ -22,7 +22,7 @@
   "keywords": [],
   "author": {
     "name": "Dumb Notes",
-    "email": "dev@example.com"
+    "email": "contact@koljasam.com"
   },
   "license": "ISC",
   "type": "commonjs",
@@ -43,7 +43,7 @@
   },
   "dependencies": {},
   "build": {
-    "appId": "com.example.dumbnotes",
+    "appId": "com.koljasam.dumbnotes",
     "productName": "Dumb Notes",
     "files": [
       "dist/main/**/*",

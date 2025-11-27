@@ -1,6 +1,8 @@
 # dumb-notes
 
-Minimal plaintext note-taker (Electron + Vite + Vue + Tailwind/DaisyUI). Notes live as `.txt` files in a single user-chosen folder; filename == title, file content == body. Unsafe or duplicate titles are rejected.
+> for notes that are too simple for Obsidian.md
+
+Minimal plaintext note-taker (Electron + Vite + Vue + Tailwind/DaisyUI). Notes live as `.txt` files in a single user-chosen folder.
 
 - Sidebar (right): search + list + sort dropdown (no subfolders).
 - Main pane: title field + body textarea, autosave (debounced), external edit prompts, delete via command palette.
@@ -79,24 +81,3 @@ dumb-notes/
 | `npm start` | Build main and run Electron |
 | `npm run clean` | Remove all build artifacts |
 | `npm run typecheck` | Run Vue type checking |
-
-## Notes on Titles
-- Allowed: letters, numbers, spaces, dashes, underscores, parentheses, dots.
-- Rejected: reserved DOS names, control chars, `<>:"/\\|?*`, trailing space/dot, `..`, duplicates.
-- Empty title disallowed; empty body allowed.
-
-## Keyboard Shortcuts (Default)
-- `Ctrl+O` - Open note palette
-- `Ctrl+P` - Command palette
-- Others: user-configurable in Settings
-
-## Troubleshooting
-
-**Port 5173 already in use**
-- Kill existing Vite process: `lsof -ti:5173 | xargs kill`
-
-**Missing dist/ folder**
-- Run `npm run build` to create it
-
-**Electron sandbox errors**
-- The app uses `--no-sandbox` flag for easier file access (see package.json and start scripts)
