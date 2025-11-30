@@ -37,7 +37,6 @@ const current = reactive<{
 })
 
 const search = ref('')
-const sortMode = ref<'updated' | 'created' | 'alpha'>('updated')
 
 const showSettings = ref(false)
 
@@ -48,11 +47,7 @@ let saveTimer: number | undefined
 
 const filteredNotes = computed(() => {
   const term = search.value.trim().toLowerCase()
-  const sorted = [...notes.value].sort((a, b) => {
-    if (sortMode.value === 'alpha') return a.title.localeCompare(b.title)
-    if (sortMode.value === 'created') return b.createdAt - a.createdAt
-    return b.updatedAt - a.updatedAt
-  })
+  const sorted = [...notes.value].sort((a, b) => a.title.localeCompare(b.title))
   if (!term) return sorted
   return sorted.filter((n) => n.title.toLowerCase().includes(term))
 })
@@ -210,15 +205,6 @@ onBeforeUnmount(() => {
         </div>
 
         <input id="search" v-model="search" type="text" name="search" class="input" placeholder="Find note" />
-
-        <fieldset class="fieldset">
-          <select id="sort" v-model="sortMode" class="select select-bordered w-full">
-            <option value="updated">↓ Updated (newest)</option>
-            <option value="created">↓ Created (newest)</option>
-            <option value="alpha">↓ Alphabetical</option>
-          </select>
-        </fieldset>
-
 
         <div class="flex flex-col gap-2">
           <button class="btn  btn-sm" @click="createNewNote">New note</button>
