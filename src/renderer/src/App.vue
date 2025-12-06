@@ -134,28 +134,69 @@ onMounted(async () => {
         />
       </div>
 
-      <!-- When no showable attachment: horizontal layout -->
-      <NoteEditor
-        v-else
-        :title="current.title"
-        :body="current.body"
-        :has-title="!!current.title"
-        :has-attachment="!!attachment"
-        @update:title="current.title = $event"
-        @update:body="current.body = $event"
-        @delete="deleteNote"
-        @add-attachment="selectAndAddFile"
-      />
+      <!-- When no showable attachment OR no attachment at all -->
+      <div v-else class="flex-1 flex flex-col gap-4 min-w-0" style="overflow: hidden;">
+        <!-- Title and buttons (fixed height) -->
+        <div class="flex gap-2 shrink-0">
+          <input
+            id="note-title"
+            :value="current.title"
+            @input="current.title = ($event.target as HTMLInputElement).value"
+            type="text"
+            class="input w-full flex-1"
+            placeholder="Untitled"
+          />
+          <button
+            v-if="attachment"
+            class="btn btn-square"
+            @click="openExternal"
+            title="Open externally"
+          >
+            <ExternalLink :size="20" />
+          </button>
+          <button
+            v-if="attachment"
+            class="btn btn-square"
+            @click="removeAttachment"
+            title="Remove attachment"
+          >
+            <X :size="20" />
+          </button>
+          <button
+            class="btn btn-square"
+            :disabled="!current.title || !!attachment"
+            @click="selectAndAddFile"
+            title="Add attachment"
+          >
+            <Paperclip :size="20" />
+          </button>
+          <button
+            class="btn btn-square"
+            :disabled="!current.title"
+            @click="deleteNote"
+            title="Delete note"
+          >
+            <Trash2 :size="20" />
+          </button>
+        </div>
 
-      <!-- Non-showable attachment panel (side-by-side) -->
-      <AttachmentPanel
-        v-if="attachment && attachmentUrl && !isShowable"
-        :attachment="attachment"
-        :attachment-url="attachmentUrl"
-        @toggle-fullscreen="toggleFullscreen"
-        @open-external="openExternal"
-        @remove="removeAttachment"
-      />
+        <!-- Non-showable attachment card -->
+        <div
+          v-if="attachment && !isShowable"
+          class="flex items-center gap-2 p-2 border border-base-200 rounded shrink-0"
+        >
+          <span class="text-sm flex-1">{{ attachment.filename }}</span>
+        </div>
+
+        <!-- Note body -->
+        <textarea
+          id="note-body"
+          :value="current.body"
+          @input="current.body = ($event.target as HTMLTextAreaElement).value"
+          class="textarea textarea-bordered flex-1 resize-none w-full"
+          placeholder="Start typing..."
+        />
+      </div>
     </div>
 
     <!-- Fullscreen overlay -->
