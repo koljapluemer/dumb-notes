@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import path from 'path'
 import fs from 'fs'
+import crypto from 'crypto'
 import packageJson from '../../package.json'
 
 // Disable sandbox inside AppImage/packaged builds to avoid chrome-sandbox permission requirement
@@ -30,8 +31,17 @@ type SavePayload = {
   body: string
 }
 
+type AttachmentMeta = {
+  filename: string
+  storedAs: string
+  mimeType: string
+  size: number
+  addedAt: number
+}
+
 const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json')
 const NOTE_EXT = '.txt'
+const ATTACHMENT_EXT = '.attachment'
 const RESERVED_NAMES = new Set([
   'CON',
   'PRN',
@@ -199,6 +209,120 @@ function deleteNote(folderPath: string, title: string): void {
   fs.unlinkSync(filePath)
 }
 
+// Attachment helpers
+function getAttachmentMetaPath(folderPath: string, noteTitle: string): string {
+  return path.join(folderPath, `${noteTitle}${ATTACHMENT_EXT}`)
+}
+
+function getAttachmentsFolder(folderPath: string): string {
+  return path.join(folderPath, '.attachments')
+}
+
+function generateStoredFilename(originalFilename: string): string {
+  const hash = crypto.randomBytes(6).toString('hex')
+  return `${hash}_${originalFilename}`
+}
+
+function getAttachment(folderPath: string, noteTitle: string): AttachmentMeta | null {
+  const metaPath = getAttachmentMetaPath(folderPath, noteTitle)
+  try {
+    const raw = fs.readFileSync(metaPath, 'utf-8')
+    return JSON.parse(raw) as AttachmentMeta
+  } catch {
+    return null
+  }
+}
+
+function addAttachment(folderPath: string, noteTitle: string, sourceFilePath: string): AttachmentMeta {
+  ensureFolder(folderPath)
+
+  // Create .attachments folder if needed
+  const attachmentsFolder = getAttachmentsFolder(folderPath)
+  fs.mkdirSync(attachmentsFolder, { recursive: true })
+
+  // Generate stored filename and copy file
+  const originalFilename = path.basename(sourceFilePath)
+  const storedFilename = generateStoredFilename(originalFilename)
+  const destPath = path.join(attachmentsFolder, storedFilename)
+
+  fs.copyFileSync(sourceFilePath, destPath)
+
+  // Get file stats
+  const stats = fs.statSync(destPath)
+
+  // Create metadata
+  const metadata: AttachmentMeta = {
+    filename: originalFilename,
+    storedAs: storedFilename,
+    mimeType: getMimeType(originalFilename),
+    size: stats.size,
+    addedAt: Date.now(),
+  }
+
+  // Write metadata file
+  const metaPath = getAttachmentMetaPath(folderPath, noteTitle)
+  fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2))
+
+  return metadata
+}
+
+function removeAttachment(folderPath: string, noteTitle: string): void {
+  const metadata = getAttachment(folderPath, noteTitle)
+  if (!metadata) return
+
+  // Delete attachment file
+  const attachmentsFolder = getAttachmentsFolder(folderPath)
+  const attachmentPath = path.join(attachmentsFolder, metadata.storedAs)
+  try {
+    fs.unlinkSync(attachmentPath)
+  } catch {
+    // File might already be missing
+  }
+
+  // Delete metadata file
+  const metaPath = getAttachmentMetaPath(folderPath, noteTitle)
+  try {
+    fs.unlinkSync(metaPath)
+  } catch {
+    // Metadata might already be missing
+  }
+}
+
+function renameAttachment(folderPath: string, oldTitle: string, newTitle: string): void {
+  const oldMetaPath = getAttachmentMetaPath(folderPath, oldTitle)
+  const newMetaPath = getAttachmentMetaPath(folderPath, newTitle)
+
+  if (fs.existsSync(oldMetaPath)) {
+    fs.renameSync(oldMetaPath, newMetaPath)
+  }
+}
+
+function getMimeType(filename: string): string {
+  const ext = path.extname(filename).toLowerCase()
+  const mimeTypes: Record<string, string> = {
+    '.pdf': 'application/pdf',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+  }
+  return mimeTypes[ext] || 'application/octet-stream'
+}
+
+function getAttachmentUrl(folderPath: string, noteTitle: string): string | null {
+  const metadata = getAttachment(folderPath, noteTitle)
+  if (!metadata) return null
+
+  const attachmentsFolder = getAttachmentsFolder(folderPath)
+  const attachmentPath = path.join(attachmentsFolder, metadata.storedAs)
+
+  if (!fs.existsSync(attachmentPath)) return null
+
+  return `file://${attachmentPath}`
+}
+
 ipcMain.handle('select-folder', async () => {
   const res = await dialog.showOpenDialog(mainWindow!, {
     properties: ['openDirectory', 'createDirectory'],
@@ -231,12 +355,65 @@ ipcMain.handle('read-note', (_e, title: string) => {
 
 ipcMain.handle('save-note', (_e, payload: SavePayload) => {
   const { folderPath } = readSettings()
+
+  // Handle attachment rename if title changed
+  if (payload.originalTitle && payload.originalTitle !== payload.title) {
+    renameAttachment(folderPath, payload.originalTitle, payload.title)
+  }
+
   const saved = saveNote(folderPath, payload)
   return saved
 })
 
 ipcMain.handle('delete-note', (_e, title: string) => {
   const { folderPath } = readSettings()
+
+  // Delete attachment if exists
+  removeAttachment(folderPath, title)
+
   deleteNote(folderPath, title)
   return true
+})
+
+// Attachment IPC handlers
+ipcMain.handle('attachment:get', (_e, noteTitle: string) => {
+  const { folderPath } = readSettings()
+  return getAttachment(folderPath, noteTitle)
+})
+
+ipcMain.handle('attachment:select-and-add', async (_e, noteTitle: string) => {
+  const { folderPath } = readSettings()
+
+  const res = await dialog.showOpenDialog(mainWindow!, {
+    properties: ['openFile'],
+    title: 'Select file to attach',
+  })
+
+  if (res.canceled || res.filePaths.length === 0) return null
+
+  const sourceFilePath = res.filePaths[0]
+  return addAttachment(folderPath, noteTitle, sourceFilePath)
+})
+
+ipcMain.handle('attachment:remove', (_e, noteTitle: string) => {
+  const { folderPath } = readSettings()
+  removeAttachment(folderPath, noteTitle)
+  return true
+})
+
+ipcMain.handle('attachment:open', (_e, noteTitle: string) => {
+  const { folderPath } = readSettings()
+  const metadata = getAttachment(folderPath, noteTitle)
+  if (!metadata) throw new Error('Attachment not found')
+
+  const attachmentsFolder = getAttachmentsFolder(folderPath)
+  const attachmentPath = path.join(attachmentsFolder, metadata.storedAs)
+
+  void shell.openPath(attachmentPath)
+  return true
+})
+
+ipcMain.handle('attachment:get-url', (_e, noteTitle: string) => {
+  const { folderPath } = readSettings()
+  return getAttachmentUrl(folderPath, noteTitle)
 })

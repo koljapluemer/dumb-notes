@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, toRef } from 'vue'
 import { useToasts } from './composables/useToasts'
 import { useSettings } from './composables/useSettings'
 import { useNotes } from './composables/useNotes'
 import { useCurrentNote } from './composables/useCurrentNote'
 import { useAutoSave } from './composables/useAutoSave'
+import { useAttachment } from './composables/useAttachment'
 import NotesList from './components/NotesList.vue'
 import NoteEditor from './components/NoteEditor.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import ToastContainer from './components/ToastContainer.vue'
+import AttachmentPanel from './components/AttachmentPanel.vue'
 
 // Initialize composables in dependency order
 const { toasts, addToast } = useToasts()
@@ -31,6 +33,12 @@ function updateLastSaveTime() {
 
 // Auto-save with hybrid throttle + debounce
 useAutoSave(current, saveNote, updateLastSaveTime)
+
+// Attachment management
+const { attachment, attachmentUrl, selectAndAddFile, removeAttachment, openExternal } = useAttachment(
+  toRef(current, 'originalTitle'),
+  addToast,
+)
 
 // Lifecycle: Load settings and notes on mount
 onMounted(async () => {
@@ -57,9 +65,19 @@ onMounted(async () => {
         :title="current.title"
         :body="current.body"
         :has-title="!!current.title"
+        :has-attachment="!!attachment"
         @update:title="current.title = $event"
         @update:body="current.body = $event"
         @delete="deleteNote"
+        @add-attachment="selectAndAddFile"
+      />
+
+      <AttachmentPanel
+        v-if="attachment && attachmentUrl"
+        :attachment="attachment"
+        :attachment-url="attachmentUrl"
+        @open-external="openExternal"
+        @remove="removeAttachment"
       />
     </div>
 

@@ -16,6 +16,15 @@ const api = {
     ),
   removeNotesChanged: (callback: (...args: any[]) => void) =>
     ipcRenderer.removeListener('notes-changed', callback),
+  // Attachment API
+  getAttachment: (noteTitle: string): Promise<any> => ipcRenderer.invoke('attachment:get', noteTitle),
+  selectAndAddAttachment: (noteTitle: string): Promise<any> =>
+    ipcRenderer.invoke('attachment:select-and-add', noteTitle),
+  removeAttachment: (noteTitle: string): Promise<any> =>
+    ipcRenderer.invoke('attachment:remove', noteTitle),
+  openAttachment: (noteTitle: string): Promise<any> => ipcRenderer.invoke('attachment:open', noteTitle),
+  getAttachmentUrl: (noteTitle: string): Promise<any> =>
+    ipcRenderer.invoke('attachment:get-url', noteTitle),
 }
 
 contextBridge.exposeInMainWorld('notesApi', api)
