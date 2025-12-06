@@ -20,7 +20,13 @@ npm install
 ```
 
 ### Development
-Run these in 3 separate terminals:
+
+**Option 1** - Using `just` (recommended):
+```bash
+just dev
+```
+
+**Option 2** - Manual (3 separate terminals):
 
 **Terminal 1** - Main process (watch mode):
 ```bash
@@ -37,7 +43,7 @@ npm run dev:renderer
 npm run start:dev
 ```
 
-The app will hot-reload when you edit Vue files. Main process changes require restarting Terminal 3.
+The app will hot-reload when you edit Vue files. Main process changes require restarting Terminal 3 (or `just dev`).
 
 ### Build .deb Package
 ```bash

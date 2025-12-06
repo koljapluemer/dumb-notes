@@ -85,7 +85,25 @@ async function refreshNotes() {
   if (!settings.value.folderPath) return
   loadingNotes.value = true
   try {
-    notes.value = await api.listNotes()
+    const fetched = await api.listNotes()
+
+    // Create map of existing notes for efficient lookup
+    const existingMap = new Map(notes.value.map(n => [n.title, n]))
+
+    // Merge strategy: reuse existing objects when data hasn't changed
+    notes.value = fetched.map(fetchedNote => {
+      const existing = existingMap.get(fetchedNote.title)
+
+      // Reuse existing object if title matches and metadata is identical
+      if (existing &&
+          existing.updatedAt === fetchedNote.updatedAt &&
+          existing.createdAt === fetchedNote.createdAt) {
+        return existing  // Same reference = no re-render
+      }
+
+      // Return new object for new or modified notes
+      return fetchedNote
+    })
   } catch (err: any) {
     addToast(err?.message || 'Failed to list notes', 'error')
   } finally {
