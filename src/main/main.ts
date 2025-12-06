@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, protocol, net } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
@@ -7,6 +7,19 @@ import packageJson from '../../package.json'
 // Disable sandbox inside AppImage/packaged builds to avoid chrome-sandbox permission requirement
 process.env.ELECTRON_DISABLE_SANDBOX = '1'
 app.commandLine.appendSwitch('no-sandbox')
+
+// Register custom protocol as privileged BEFORE app is ready
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'attachment',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      bypassCSP: true,
+    },
+  },
+])
 
 type Settings = {
   folderPath: string
@@ -71,6 +84,53 @@ let mainWindow: BrowserWindow | null = null
 const isDev = process.env.VITE_DEV_SERVER_URL !== undefined
 
 app.whenReady().then(() => {
+  // Register custom protocol for serving attachment files
+  protocol.handle('attachment', async (request) => {
+    console.log('[PROTOCOL] Request received:', request.url)
+    try {
+      // Extract the file path from attachment://filename
+      // Remove trailing slash that gets added by standard protocol
+      let url = request.url.slice('attachment://'.length)
+      if (url.endsWith('/')) {
+        url = url.slice(0, -1)
+      }
+      console.log('[PROTOCOL] Extracted filename:', url)
+
+      const settings = readSettings()
+      console.log('[PROTOCOL] Settings folder:', settings.folderPath)
+
+      const attachmentsFolder = getAttachmentsFolder(settings.folderPath)
+      console.log('[PROTOCOL] Attachments folder:', attachmentsFolder)
+
+      const filePath = path.join(attachmentsFolder, url)
+      console.log('[PROTOCOL] Full file path:', filePath)
+
+      // Security: verify file is within attachments folder
+      if (!filePath.startsWith(attachmentsFolder)) {
+        console.log('[PROTOCOL] ERROR: Path outside attachments folder')
+        return new Response('Forbidden', { status: 403 })
+      }
+
+      // Check file exists
+      if (!fs.existsSync(filePath)) {
+        console.log('[PROTOCOL] ERROR: File does not exist')
+        return new Response('Not Found', { status: 404 })
+      }
+
+      console.log('[PROTOCOL] File exists, serving...')
+      const fileUrl = 'file://' + filePath
+      console.log('[PROTOCOL] Fetching from:', fileUrl)
+
+      // Serve the file
+      const response = await net.fetch(fileUrl)
+      console.log('[PROTOCOL] Response status:', response.status)
+      return response
+    } catch (err) {
+      console.error('[PROTOCOL] ERROR:', err)
+      return new Response('Internal Server Error', { status: 500 })
+    }
+  })
+
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -320,7 +380,9 @@ function getAttachmentUrl(folderPath: string, noteTitle: string): string | null 
 
   if (!fs.existsSync(attachmentPath)) return null
 
-  return `file://${attachmentPath}`
+  const url = `attachment://${metadata.storedAs}`
+  console.log('[GET_ATTACHMENT_URL] Generated URL:', url, 'for file:', attachmentPath)
+  return url
 }
 
 ipcMain.handle('select-folder', async () => {
