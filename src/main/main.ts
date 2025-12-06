@@ -278,9 +278,26 @@ function getAttachmentsFolder(folderPath: string): string {
   return path.join(folderPath, '.attachments')
 }
 
+function sanitizeFilename(filename: string): string {
+  // Remove or replace unsafe characters
+  return filename
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_') // Replace illegal chars
+    .replace(/\s+/g, '_') // Replace whitespace with underscores
+    .replace(/[()[\]{}]/g, '') // Remove brackets and parens
+    .replace(/—|–/g, '-') // Replace em/en dashes with hyphens
+    .replace(/[''""]/g, '') // Remove smart quotes
+    .replace(/[^\w.-]/g, '_') // Replace any remaining non-alphanumeric chars
+    .replace(/_+/g, '_') // Collapse multiple underscores
+    .replace(/^[._-]+|[._-]+$/g, '') // Trim leading/trailing special chars
+}
+
 function generateStoredFilename(originalFilename: string): string {
   const hash = crypto.randomBytes(6).toString('hex')
-  return `${hash}_${originalFilename}`
+  const ext = path.extname(originalFilename)
+  const nameWithoutExt = path.basename(originalFilename, ext)
+  const safeName = sanitizeFilename(nameWithoutExt)
+  const safeExt = sanitizeFilename(ext)
+  return `${hash}_${safeName}${safeExt}`
 }
 
 function getAttachment(folderPath: string, noteTitle: string): AttachmentMeta | null {
