@@ -54,23 +54,83 @@ Output: `release/dumb-notes_1.0.0_amd64.deb`
 
 ## Architecture
 
+### Composables-First Design
+
+The app uses Vue 3's Composition API with a **composables-first architecture** that separates business logic from UI:
+
+- **Composables** (`src/renderer/src/composables/`) - Reusable business logic
+- **Components** (`src/renderer/src/components/`) - Presentational UI (props + emits)
+- **Services** (`src/renderer/src/services/`) - API/IPC abstraction layer
+- **Utils** (`src/renderer/src/utils/`) - Pure utility functions
+
+This design makes the codebase:
+- **Testable** - Logic is isolated from Vue components
+- **Reusable** - Composables work with any UI
+- **Maintainable** - Clear separation of concerns
+- **Portable** - Easy to adapt for different file formats (JSON, etc.)
+
+### Folder Structure
+
 ```
 dumb-notes/
 ├── src/
-│   ├── main/           # Electron main process (CommonJS)
-│   │   ├── main.ts     # Window, IPC handlers
-│   │   └── preload.ts  # Secure IPC bridge
-│   └── renderer/       # Vue 3 SPA (ESM)
+│   ├── main/                      # Electron main process (CommonJS)
+│   │   ├── main.ts                # Window, IPC handlers, file operations
+│   │   └── preload.ts             # Secure IPC bridge
+│   └── renderer/                  # Vue 3 SPA (ESM)
 │       ├── src/
-│       │   ├── App.vue
-│       │   └── components/
+│       │   ├── App.vue            # Orchestration (~70 lines)
+│       │   ├── composables/       # Business logic
+│       │   │   ├── useToasts.ts   # Toast notifications
+│       │   │   ├── useSettings.ts # Settings management
+│       │   │   ├── useNotes.ts    # Notes list + smart refresh
+│       │   │   ├── useCurrentNote.ts # Note editing
+│       │   │   └── useAutoSave.ts # Hybrid throttle + debounce
+│       │   ├── components/        # Presentational UI
+│       │   │   ├── ToastContainer.vue
+│       │   │   ├── NotesList.vue
+│       │   │   ├── NoteEditor.vue
+│       │   │   └── SettingsModal.vue
+│       │   ├── services/
+│       │   │   └── notesApi.ts    # IPC wrapper
+│       │   ├── utils/
+│       │   │   └── validation.ts  # Title/filename validation
+│       │   └── types/
+│       │       └── global.d.ts
 │       ├── index.html
 │       └── vite.config.ts
 ├── dist/
-│   ├── main/           # Compiled Electron code
-│   └── renderer/       # Built Vue app
-└── package.json        # All dependencies here
+│   ├── main/                      # Compiled Electron code
+│   └── renderer/                  # Built Vue app
+└── package.json
 ```
+
+### Auto-Save Strategy
+
+Uses a **hybrid throttle + debounce** approach (inspired by Obsidian):
+
+- **Throttle**: Saves every 2 seconds max while typing (prevents data loss)
+- **Debounce**: Saves 500ms after pausing (responsive to edits)
+- **Immediate**: Title changes save instantly (for renames)
+
+This eliminates editor lag during fast copy-paste/deletion while ensuring data safety.
+
+### Reusability for Future Projects
+
+The architecture is designed to be reused for similar apps (e.g., JSON-based file managers):
+
+**Fully Reusable (copy as-is):**
+- All composables (`useToasts`, `useSettings`, `useAutoSave`)
+- Utils (`validation.ts`)
+
+**80% Reusable (minor tweaks):**
+- `useNotes.ts` - Change file extension filter
+- `useCurrentNote.ts` - Update serialization format
+- `notesApi.ts` - Swap IPC implementation
+
+**UI-Specific (replace with new designs):**
+- All `.vue` components
+- App.vue orchestration
 
 ## Available Scripts
 
