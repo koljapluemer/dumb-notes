@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { AttachmentMeta } from '../services/notesApi'
 import { computed } from 'vue'
-import { ExternalLink, X } from 'lucide-vue-next'
+import { ExternalLink, X, Maximize2 } from 'lucide-vue-next'
 
 const props = defineProps<{
   attachment: AttachmentMeta
@@ -11,6 +11,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'open-external'): void
   (e: 'remove'): void
+  (e: 'toggle-fullscreen'): void
 }>()
 
 const isImage = computed(() => props.attachment.mimeType.startsWith('image/'))
@@ -42,6 +43,9 @@ const isPdf = computed(() => props.attachment.mimeType === 'application/pdf')
 
     <!-- Actions -->
     <div class="flex gap-2 shrink-0">
+      <button class="btn btn-sm btn-square flex-1" @click="emit('toggle-fullscreen')" title="Fullscreen">
+        <Maximize2 :size="20" />
+      </button>
       <button class="btn btn-sm btn-square flex-1" @click="emit('open-external')" title="Open externally">
         <ExternalLink :size="20" />
       </button>

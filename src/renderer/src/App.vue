@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, toRef } from 'vue'
-import { Paperclip, Trash2 } from 'lucide-vue-next'
+import { Paperclip, Trash2, Maximize2, ExternalLink, X } from 'lucide-vue-next'
 import { useToasts } from './composables/useToasts'
 import { useSettings } from './composables/useSettings'
 import { useNotes } from './composables/useNotes'
@@ -36,7 +36,7 @@ function updateLastSaveTime() {
 useAutoSave(current, saveNote, updateLastSaveTime)
 
 // Attachment management
-const { attachment, attachmentUrl, isShowable, selectAndAddFile, removeAttachment, openExternal } = useAttachment(
+const { attachment, attachmentUrl, isShowable, isFullscreen, toggleFullscreen, selectAndAddFile, removeAttachment, openExternal } = useAttachment(
   toRef(current, 'originalTitle'),
   addToast,
 )
@@ -76,6 +76,27 @@ onMounted(async () => {
           />
           <button
             class="btn btn-square"
+            @click="toggleFullscreen"
+            title="Fullscreen"
+          >
+            <Maximize2 :size="20" />
+          </button>
+          <button
+            class="btn btn-square"
+            @click="openExternal"
+            title="Open externally"
+          >
+            <ExternalLink :size="20" />
+          </button>
+          <button
+            class="btn btn-square"
+            @click="removeAttachment"
+            title="Remove attachment"
+          >
+            <X :size="20" />
+          </button>
+          <button
+            class="btn btn-square"
             :disabled="!current.title || !!attachment"
             @click="selectAndAddFile"
             title="Add attachment"
@@ -94,12 +115,11 @@ onMounted(async () => {
 
         <!-- Attachment preview (takes remaining space minus 15vh for textarea) -->
         <div class="flex-1 min-h-0 flex items-start justify-start overflow-hidden">
-          <AttachmentPanel
+          <img
             v-if="attachment && attachmentUrl"
-            :attachment="attachment"
-            :attachment-url="attachmentUrl"
-            @open-external="openExternal"
-            @remove="removeAttachment"
+            :src="attachmentUrl"
+            class="max-w-full max-h-full object-contain object-left-top"
+            :alt="attachment.filename"
           />
         </div>
 
@@ -132,8 +152,23 @@ onMounted(async () => {
         v-if="attachment && attachmentUrl && !isShowable"
         :attachment="attachment"
         :attachment-url="attachmentUrl"
+        @toggle-fullscreen="toggleFullscreen"
         @open-external="openExternal"
         @remove="removeAttachment"
+      />
+    </div>
+
+    <!-- Fullscreen overlay -->
+    <div
+      v-if="isFullscreen && attachment && attachmentUrl"
+      class="fixed inset-0 bg-black z-50 flex items-center justify-center p-4 cursor-pointer"
+      @click="toggleFullscreen"
+    >
+      <img
+        v-if="isShowable && attachmentUrl"
+        :src="attachmentUrl"
+        class="max-w-full max-h-full object-contain"
+        :alt="attachment.filename"
       />
     </div>
 

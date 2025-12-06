@@ -16,6 +16,14 @@ export function useAttachment(
 ) {
   const attachment = ref<AttachmentMeta | null>(null)
   const attachmentUrl = ref<string | null>(null)
+  const isFullscreen = ref(false)
+
+  /**
+   * Toggle fullscreen preview
+   */
+  function toggleFullscreen(): void {
+    isFullscreen.value = !isFullscreen.value
+  }
 
   /**
    * Check if attachment is an image
@@ -127,6 +135,8 @@ export function useAttachment(
     isImage,
     isPdf,
     isShowable,
+    isFullscreen,
+    toggleFullscreen,
     selectAndAddFile,
     removeAttachment,
     openExternal,
