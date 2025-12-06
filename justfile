@@ -34,6 +34,15 @@ package-deb:
 package-appimage:
     npm run package:appimage
 
+# Build and install .deb package
+install-deb:
+    npm run package:deb
+    sudo dpkg -i release/dumb-notes_1.1.0_amd64.deb
+
+# Uninstall the app
+uninstall:
+    sudo dpkg -r dumb-notes
+
 # Utilities
 clean:
     npm run clean

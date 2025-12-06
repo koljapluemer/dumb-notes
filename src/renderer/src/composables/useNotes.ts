@@ -20,6 +20,14 @@ export function useNotes(
   const loadingNotes = ref(false)
 
   /**
+   * Show loading message only when there are no notes yet
+   * This prevents flickering during refresh when notes already exist
+   */
+  const showLoadingMessage = computed(() => {
+    return loadingNotes.value && notes.value.length === 0
+  })
+
+  /**
    * Computed filtered and sorted notes list
    */
   const filteredNotes = computed(() => {
@@ -72,6 +80,7 @@ export function useNotes(
     notes,
     search,
     loadingNotes,
+    showLoadingMessage,
     filteredNotes,
     refreshNotes,
   }

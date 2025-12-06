@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
+import packageJson from '../../package.json'
 
 // Disable sandbox inside AppImage/packaged builds to avoid chrome-sandbox permission requirement
 process.env.ELECTRON_DISABLE_SANDBOX = '1'
@@ -74,6 +75,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    title: `Dumb Notes v${packageJson.version}`,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -84,6 +86,11 @@ function createWindow() {
 
   // Start maximized for full-height layout
   mainWindow.maximize()
+
+  // Set title after page load to override HTML <title>
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow?.setTitle(`Dumb Notes v${packageJson.version}`)
+  })
 
   if (isDev) {
     const url = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173'

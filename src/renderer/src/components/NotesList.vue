@@ -3,7 +3,7 @@ import type { NoteMeta } from '../services/notesApi'
 
 defineProps<{
   notes: NoteMeta[]
-  loading: boolean
+  showLoading: boolean
   currentTitle?: string
   search: string
 }>()
@@ -20,9 +20,9 @@ const emit = defineEmits<{
   <aside class="w-80 flex flex-col gap-4 h-full">
     <div class="flex-1 overflow-auto bg-base-100 rounded-box border border-base-200">
       <ul class="menu w-full">
-        <li v-if="loading"><span>Loading…</span></li>
+        <li v-if="showLoading"><span>Loading…</span></li>
         <li v-else-if="notes.length === 0"><span>No notes</span></li>
-        <li v-for="note in notes" :key="note.title" class="w-full">
+        <li v-else v-for="note in notes" :key="note.title" class="w-full">
           <a
             @click.prevent="emit('open-note', note.title)"
             :class="{ 'bg-black/50': note.title === currentTitle }"

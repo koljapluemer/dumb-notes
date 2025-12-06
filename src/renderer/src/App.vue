@@ -13,7 +13,10 @@ import ToastContainer from './components/ToastContainer.vue'
 // Initialize composables in dependency order
 const { toasts, addToast } = useToasts()
 const { settings, showSettings, loadSettings, selectFolder } = useSettings(addToast)
-const { notes, search, loadingNotes, filteredNotes, refreshNotes } = useNotes(settings, addToast)
+const { notes, search, loadingNotes, showLoadingMessage, filteredNotes, refreshNotes } = useNotes(
+  settings,
+  addToast,
+)
 const { current, openNote, createNewNote, saveNote, deleteNote } = useCurrentNote(
   settings,
   addToast,
@@ -41,7 +44,7 @@ onMounted(async () => {
     <div class="flex-1 flex gap-4 overflow-hidden">
       <NotesList
         :notes="filteredNotes"
-        :loading="loadingNotes"
+        :show-loading="showLoadingMessage"
         :current-title="current.originalTitle"
         :search="search"
         @open-note="openNote"
