@@ -34,6 +34,13 @@ export function useAttachment(
   })
 
   /**
+   * Check if attachment can be previewed (image or PDF)
+   */
+  const isShowable = computed(() => {
+    return isImage.value || isPdf.value
+  })
+
+  /**
    * Load attachment metadata and URL for current note
    */
   async function loadAttachment(): Promise<void> {
@@ -119,6 +126,7 @@ export function useAttachment(
     attachmentUrl,
     isImage,
     isPdf,
+    isShowable,
     selectAndAddFile,
     removeAttachment,
     openExternal,

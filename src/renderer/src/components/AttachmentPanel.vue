@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AttachmentMeta } from '../services/notesApi'
 import { computed } from 'vue'
+import { ExternalLink, X } from 'lucide-vue-next'
 
 const props = defineProps<{
   attachment: AttachmentMeta
@@ -17,20 +18,20 @@ const isPdf = computed(() => props.attachment.mimeType === 'application/pdf')
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col gap-2 border-l border-base-200 pl-4 min-w-0">
+  <div class="flex flex-col gap-2 w-full h-full">
     <!-- PDF preview -->
     <embed
       v-if="isPdf && attachmentUrl"
       :src="attachmentUrl"
       type="application/pdf"
-      class="flex-1 min-h-0"
+      class="w-full flex-1"
     />
 
     <!-- Image preview -->
     <img
       v-else-if="isImage && attachmentUrl"
       :src="attachmentUrl"
-      class="flex-1 object-contain min-h-0"
+      class="max-w-full max-h-full object-contain object-left-top flex-1"
       :alt="attachment.filename"
     />
 
@@ -40,9 +41,13 @@ const isPdf = computed(() => props.attachment.mimeType === 'application/pdf')
     </div>
 
     <!-- Actions -->
-    <div class="flex gap-2">
-      <button class="btn btn-sm flex-1" @click="emit('open-external')">Open</button>
-      <button class="btn btn-sm" @click="emit('remove')">Remove</button>
+    <div class="flex gap-2 shrink-0">
+      <button class="btn btn-sm btn-square flex-1" @click="emit('open-external')" title="Open externally">
+        <ExternalLink :size="20" />
+      </button>
+      <button class="btn btn-sm btn-square" @click="emit('remove')" title="Remove attachment">
+        <X :size="20" />
+      </button>
     </div>
   </div>
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, toRef } from 'vue'
+import { Paperclip, Trash2 } from 'lucide-vue-next'
 import { useToasts } from './composables/useToasts'
 import { useSettings } from './composables/useSettings'
 import { useNotes } from './composables/useNotes'
@@ -35,7 +36,7 @@ function updateLastSaveTime() {
 useAutoSave(current, saveNote, updateLastSaveTime)
 
 // Attachment management
-const { attachment, attachmentUrl, selectAndAddFile, removeAttachment, openExternal } = useAttachment(
+const { attachment, attachmentUrl, isShowable, selectAndAddFile, removeAttachment, openExternal } = useAttachment(
   toRef(current, 'originalTitle'),
   addToast,
 )
@@ -61,7 +62,61 @@ onMounted(async () => {
         @update:search="search = $event"
       />
 
+      <!-- When showable attachment exists: vertical layout with attachment on top -->
+      <div v-if="isShowable" class="flex-1 flex flex-col gap-4 min-w-0" style="overflow: hidden;">
+        <!-- Title and buttons (fixed height) -->
+        <div class="flex gap-2 shrink-0">
+          <input
+            id="note-title"
+            :value="current.title"
+            @input="current.title = ($event.target as HTMLInputElement).value"
+            type="text"
+            class="input w-full flex-1"
+            placeholder="Untitled"
+          />
+          <button
+            class="btn btn-square"
+            :disabled="!current.title || !!attachment"
+            @click="selectAndAddFile"
+            title="Add attachment"
+          >
+            <Paperclip :size="20" />
+          </button>
+          <button
+            class="btn btn-square"
+            :disabled="!current.title"
+            @click="deleteNote"
+            title="Delete note"
+          >
+            <Trash2 :size="20" />
+          </button>
+        </div>
+
+        <!-- Attachment preview (takes remaining space minus 15vh for textarea) -->
+        <div class="flex-1 min-h-0 flex items-start justify-start overflow-hidden">
+          <AttachmentPanel
+            v-if="attachment && attachmentUrl"
+            :attachment="attachment"
+            :attachment-url="attachmentUrl"
+            @open-external="openExternal"
+            @remove="removeAttachment"
+          />
+        </div>
+
+        <!-- Note body below attachment (fixed 15vh) -->
+        <textarea
+          id="note-body"
+          :value="current.body"
+          @input="current.body = ($event.target as HTMLTextAreaElement).value"
+          class="textarea textarea-bordered resize-none w-full shrink-0"
+          style="height: 15vh;"
+          placeholder="Start typing..."
+        />
+      </div>
+
+      <!-- When no showable attachment: horizontal layout -->
       <NoteEditor
+        v-else
         :title="current.title"
         :body="current.body"
         :has-title="!!current.title"
@@ -72,8 +127,9 @@ onMounted(async () => {
         @add-attachment="selectAndAddFile"
       />
 
+      <!-- Non-showable attachment panel (side-by-side) -->
       <AttachmentPanel
-        v-if="attachment && attachmentUrl"
+        v-if="attachment && attachmentUrl && !isShowable"
         :attachment="attachment"
         :attachment-url="attachmentUrl"
         @open-external="openExternal"
