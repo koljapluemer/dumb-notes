@@ -12,6 +12,7 @@ const emit = defineEmits<{
   (e: 'open-note', title: string): void
   (e: 'create'): void
   (e: 'settings'): void
+  (e: 'log'): void
   (e: 'update:search', value: string): void
 }>()
 </script>
@@ -46,6 +47,7 @@ const emit = defineEmits<{
     <div class="flex flex-col gap-2">
       <button class="btn btn-sm" @click="emit('create')">New note</button>
       <button class="btn btn-sm" @click="emit('settings')">Settings</button>
+      <button class="btn btn-sm" @click="emit('log')">Log</button>
     </div>
   </aside>
 </template>

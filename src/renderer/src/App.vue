@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, toRef } from 'vue'
+import { onMounted, ref, toRef } from 'vue'
 import { Paperclip, Trash2, Maximize2, ExternalLink, X } from 'lucide-vue-next'
 import { useToasts } from './composables/useToasts'
 import { useSettings } from './composables/useSettings'
@@ -10,6 +10,7 @@ import { useAttachment } from './composables/useAttachment'
 import NotesList from './components/NotesList.vue'
 import NoteEditor from './components/NoteEditor.vue'
 import SettingsModal from './components/SettingsModal.vue'
+import LogModal from './components/LogModal.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import AttachmentPanel from './components/AttachmentPanel.vue'
 
@@ -25,6 +26,7 @@ const { current, openNote, createNewNote, saveNote, deleteNote } = useCurrentNot
   addToast,
   refreshNotes,
 )
+const showLog = ref(false)
 
 // Track last save time for auto-save throttling
 let lastSaveTime = 0
@@ -59,6 +61,7 @@ onMounted(async () => {
         @open-note="openNote"
         @create="createNewNote"
         @settings="showSettings = true"
+        @log="showLog = true"
         @update:search="search = $event"
       />
 
@@ -218,6 +221,13 @@ onMounted(async () => {
       :folder-path="settings.folderPath"
       @close="showSettings = false"
       @select-folder="selectFolder().then(() => refreshNotes())"
+    />
+
+    <LogModal
+      :visible="showLog"
+      :notes="notes"
+      @close="showLog = false"
+      @open-note="(title) => { openNote(title); showLog = false }"
     />
 
     <ToastContainer :toasts="toasts" />
