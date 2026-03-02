@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, toRef } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, watch, toRef } from 'vue'
 import { Paperclip, Trash2, Maximize2, ExternalLink, X } from 'lucide-vue-next'
 import { useToasts } from './composables/useToasts'
 import { useSettings } from './composables/useSettings'
@@ -7,17 +7,17 @@ import { useNotes } from './composables/useNotes'
 import { useCurrentNote } from './composables/useCurrentNote'
 import { useAutoSave } from './composables/useAutoSave'
 import { useAttachment } from './composables/useAttachment'
+import { useNoteSearch } from './composables/useNoteSearch'
 import NotesList from './components/NotesList.vue'
-import NoteEditor from './components/NoteEditor.vue'
+import SearchBar from './components/SearchBar.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import LogModal from './components/LogModal.vue'
 import ToastContainer from './components/ToastContainer.vue'
-import AttachmentPanel from './components/AttachmentPanel.vue'
 
 // Initialize composables in dependency order
 const { toasts, addToast } = useToasts()
 const { settings, showSettings, loadSettings, selectFolder } = useSettings(addToast)
-const { notes, search, loadingNotes, showLoadingMessage, filteredNotes, refreshNotes } = useNotes(
+const { notes, search, showLoadingMessage, filteredNotes, refreshNotes } = useNotes(
   settings,
   addToast,
 )
@@ -28,14 +28,8 @@ const { current, openNote, createNewNote, saveNote, deleteNote } = useCurrentNot
 )
 const showLog = ref(false)
 
-// Track last save time for auto-save throttling
-let lastSaveTime = 0
-function updateLastSaveTime() {
-  lastSaveTime = Date.now()
-}
-
 // Auto-save with hybrid throttle + debounce
-useAutoSave(current, saveNote, updateLastSaveTime)
+useAutoSave(current, saveNote, () => {})
 
 // Attachment management
 const { attachment, attachmentUrl, isShowable, isFullscreen, toggleFullscreen, selectAndAddFile, removeAttachment, openExternal } = useAttachment(
@@ -43,15 +37,85 @@ const { attachment, attachmentUrl, isShowable, isFullscreen, toggleFullscreen, s
   addToast,
 )
 
+// Search within note
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const overlayRef = ref<HTMLDivElement | null>(null)
+
+const {
+  isOpen: searchIsOpen,
+  searchQuery,
+  matches,
+  currentMatchIndex,
+  currentMatch,
+  matchCountText,
+  nextMatch,
+  previousMatch,
+  openSearch,
+  closeSearch,
+} = useNoteSearch(toRef(current, 'body'))
+
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+const highlightedHtml = computed(() => {
+  const text = current.body
+  if (!searchIsOpen.value || matches.value.length === 0) return escapeHtml(text)
+  let result = ''
+  let lastEnd = 0
+  matches.value.forEach((match, index) => {
+    result += escapeHtml(text.slice(lastEnd, match.start))
+    const matchText = escapeHtml(text.slice(match.start, match.end))
+    const cls = index === currentMatchIndex.value ? 'bg-orange-400/80' : 'bg-yellow-200/70'
+    result += `<mark class="${cls}">${matchText}</mark>`
+    lastEnd = match.end
+  })
+  result += escapeHtml(text.slice(lastEnd))
+  return result
+})
+
+function syncOverlayScroll() {
+  if (overlayRef.value && textareaRef.value) {
+    overlayRef.value.scrollTop = textareaRef.value.scrollTop
+  }
+}
+
+function scrollToCurrentMatch() {
+  const match = currentMatch.value
+  const ta = textareaRef.value
+  if (!match || !ta) return
+  const textBefore = ta.value.substring(0, match.start)
+  const linesBefore = textBefore.split('\n').length - 1
+  const style = window.getComputedStyle(ta)
+  const lineHeight = parseFloat(style.lineHeight)
+  const paddingTop = parseFloat(style.paddingTop)
+  ta.scrollTop = Math.max(0, linesBefore * lineHeight + paddingTop - ta.clientHeight / 3)
+  syncOverlayScroll()
+}
+
+watch(currentMatch, scrollToCurrentMatch)
+
+function handleGlobalKeydown(event: KeyboardEvent) {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+    event.preventDefault()
+    openSearch()
+  }
+}
+
 // Lifecycle: Load settings and notes on mount
 onMounted(async () => {
   await loadSettings()
   await refreshNotes()
+  window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
 })
 </script>
 
 <template>
-  <main class="h-screen flex flex-col gap-4 p-4">
+  <main class="h-screen flex flex-col gap-4 p-4 relative">
     <div class="flex-1 flex gap-4 overflow-hidden">
       <NotesList
         :notes="filteredNotes"
@@ -127,14 +191,24 @@ onMounted(async () => {
         </div>
 
         <!-- Note body below attachment (fixed 15vh) -->
-        <textarea
-          id="note-body"
-          :value="current.body"
-          @input="current.body = ($event.target as HTMLTextAreaElement).value"
-          class="textarea textarea-bordered resize-none w-full shrink-0"
-          style="height: 15vh;"
-          placeholder="Start typing..."
-        />
+        <div class="relative shrink-0" style="height: 15vh;">
+          <div
+            v-if="searchIsOpen"
+            ref="overlayRef"
+            class="textarea textarea-bordered absolute inset-0 overflow-hidden pointer-events-none whitespace-pre-wrap break-words text-transparent z-0"
+            v-html="highlightedHtml"
+          />
+          <textarea
+            ref="textareaRef"
+            id="note-body"
+            :value="current.body"
+            @input="current.body = ($event.target as HTMLTextAreaElement).value"
+            @scroll="syncOverlayScroll"
+            class="textarea textarea-bordered resize-none w-full h-full absolute inset-0 z-[1]"
+            :class="{ 'bg-transparent': searchIsOpen }"
+            placeholder="Start typing..."
+          />
+        </div>
       </div>
 
       <!-- When no showable attachment OR no attachment at all -->
@@ -192,13 +266,24 @@ onMounted(async () => {
         </div>
 
         <!-- Note body -->
-        <textarea
-          id="note-body"
-          :value="current.body"
-          @input="current.body = ($event.target as HTMLTextAreaElement).value"
-          class="textarea textarea-bordered flex-1 resize-none w-full"
-          placeholder="Start typing..."
-        />
+        <div class="relative flex-1">
+          <div
+            v-if="searchIsOpen"
+            ref="overlayRef"
+            class="textarea textarea-bordered absolute inset-0 overflow-hidden pointer-events-none whitespace-pre-wrap break-words text-transparent z-0"
+            v-html="highlightedHtml"
+          />
+          <textarea
+            ref="textareaRef"
+            id="note-body"
+            :value="current.body"
+            @input="current.body = ($event.target as HTMLTextAreaElement).value"
+            @scroll="syncOverlayScroll"
+            class="textarea textarea-bordered resize-none w-full h-full absolute inset-0 z-[1]"
+            :class="{ 'bg-transparent': searchIsOpen }"
+            placeholder="Start typing..."
+          />
+        </div>
       </div>
     </div>
 
@@ -215,6 +300,15 @@ onMounted(async () => {
         :alt="attachment.filename"
       />
     </div>
+
+    <SearchBar
+      :visible="searchIsOpen"
+      :match-count-text="matchCountText"
+      @update:query="searchQuery = $event"
+      @next="nextMatch"
+      @previous="previousMatch"
+      @close="closeSearch"
+    />
 
     <SettingsModal
       :visible="showSettings"
