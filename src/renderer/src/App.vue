@@ -195,7 +195,8 @@ onBeforeUnmount(() => {
           <div
             v-if="searchIsOpen"
             ref="overlayRef"
-            class="textarea textarea-bordered absolute inset-0 overflow-hidden pointer-events-none whitespace-pre-wrap break-words text-transparent z-0"
+            class="absolute inset-0 overflow-hidden pointer-events-none whitespace-pre-wrap break-words text-transparent z-0 rounded-[var(--radius-field)]"
+            style="border: var(--border) solid transparent; padding-block: .5rem; padding-inline: .75rem; font-size: max(var(--font-size, .875rem), .875rem); line-height: inherit; background-color: var(--color-base-100);"
             v-html="highlightedHtml"
           />
           <textarea
@@ -204,8 +205,8 @@ onBeforeUnmount(() => {
             :value="current.body"
             @input="current.body = ($event.target as HTMLTextAreaElement).value"
             @scroll="syncOverlayScroll"
-            class="textarea textarea-bordered resize-none w-full h-full absolute inset-0 z-[1]"
-            :class="{ 'bg-transparent': searchIsOpen }"
+            class="textarea textarea-bordered resize-none w-full h-full relative z-[1]"
+            :class="{ '!bg-transparent': searchIsOpen }"
             placeholder="Start typing..."
           />
         </div>
@@ -266,11 +267,12 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Note body -->
-        <div class="relative flex-1">
+        <div class="relative flex-1 flex flex-col">
           <div
             v-if="searchIsOpen"
             ref="overlayRef"
-            class="textarea textarea-bordered absolute inset-0 overflow-hidden pointer-events-none whitespace-pre-wrap break-words text-transparent z-0"
+            class="absolute inset-0 overflow-hidden pointer-events-none whitespace-pre-wrap break-words text-transparent z-0 rounded-[var(--radius-field)]"
+            style="border: var(--border) solid transparent; padding-block: .5rem; padding-inline: .75rem; font-size: max(var(--font-size, .875rem), .875rem); line-height: inherit; background-color: var(--color-base-100);"
             v-html="highlightedHtml"
           />
           <textarea
@@ -279,8 +281,8 @@ onBeforeUnmount(() => {
             :value="current.body"
             @input="current.body = ($event.target as HTMLTextAreaElement).value"
             @scroll="syncOverlayScroll"
-            class="textarea textarea-bordered resize-none w-full h-full absolute inset-0 z-[1]"
-            :class="{ 'bg-transparent': searchIsOpen }"
+            class="textarea textarea-bordered flex-1 resize-none w-full relative z-[1]"
+            :class="{ '!bg-transparent': searchIsOpen }"
             placeholder="Start typing..."
           />
         </div>
