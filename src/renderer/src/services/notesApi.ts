@@ -26,14 +26,6 @@ type SavePayload = {
   body: string
 }
 
-type AttachmentMeta = {
-  filename: string
-  storedAs: string
-  mimeType: string
-  size: number
-  addedAt: number
-}
-
 class NotesApiService {
   private api = window.notesApi
 
@@ -64,29 +56,8 @@ class NotesApiService {
   async deleteNote(title: string): Promise<void> {
     return this.api.deleteNote(title)
   }
-
-  // Attachment methods
-  async getAttachment(noteTitle: string): Promise<AttachmentMeta | null> {
-    return this.api.getAttachment(noteTitle)
-  }
-
-  async selectAndAddAttachment(noteTitle: string): Promise<AttachmentMeta | null> {
-    return this.api.selectAndAddAttachment(noteTitle)
-  }
-
-  async removeAttachment(noteTitle: string): Promise<void> {
-    return this.api.removeAttachment(noteTitle)
-  }
-
-  async openAttachment(noteTitle: string): Promise<void> {
-    return this.api.openAttachment(noteTitle)
-  }
-
-  async getAttachmentUrl(noteTitle: string): Promise<string | null> {
-    return this.api.getAttachmentUrl(noteTitle)
-  }
 }
 
 export const notesApi = new NotesApiService()
 
-export type { Settings, NoteMeta, NoteRead, SavePayload, AttachmentMeta }
+export type { Settings, NoteMeta, NoteRead, SavePayload }

@@ -1,12 +1,13 @@
 # dumb-notes
 
-> for notes that are too simple for Obsidian.md
+## an extremely simple, extremely plaintext, local note-taking app for notes where fancy templating only distracts
+
+![](doc/screenshot.webp)
 
 Minimal plaintext note-taker (Electron + Vite + Vue + Tailwind/DaisyUI). Notes live as `.txt` files in a single user-chosen folder.
 
 - Sidebar (right): search + list + sort dropdown (no subfolders).
 - Main pane: title field + body textarea, autosave (debounced), external edit prompts, delete via command palette.
-- Modals: open-note palette (`Ctrl+O`), command palette (`Ctrl+P`), settings (folder picker, shortcut bindings), toasts for warnings/errors.
 
 ## Prerequisites
 - Node 18+ (recommended 20+)

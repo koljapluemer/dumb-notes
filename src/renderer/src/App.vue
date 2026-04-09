@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, computed, watch, toRef } from 'vue'
-import { Paperclip, Trash2, Maximize2, ExternalLink, X } from 'lucide-vue-next'
+import { Trash2 } from 'lucide-vue-next'
 import { useToasts } from './composables/useToasts'
 import { useSettings } from './composables/useSettings'
 import { useNotes } from './composables/useNotes'
 import { useCurrentNote } from './composables/useCurrentNote'
 import { useAutoSave } from './composables/useAutoSave'
-import { useAttachment } from './composables/useAttachment'
 import { useNoteSearch } from './composables/useNoteSearch'
 import NotesList from './components/NotesList.vue'
 import SearchBar from './components/SearchBar.vue'
@@ -30,12 +29,6 @@ const showLog = ref(false)
 
 // Auto-save with hybrid throttle + debounce
 useAutoSave(current, saveNote, () => {})
-
-// Attachment management
-const { attachment, attachmentUrl, isShowable, isFullscreen, toggleFullscreen, selectAndAddFile, removeAttachment, openExternal } = useAttachment(
-  toRef(current, 'originalTitle'),
-  addToast,
-)
 
 // Search within note
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
@@ -129,9 +122,8 @@ onBeforeUnmount(() => {
         @update:search="search = $event"
       />
 
-      <!-- When showable attachment exists: vertical layout with attachment on top -->
-      <div v-if="isShowable" class="flex-1 flex flex-col gap-4 min-w-0" style="overflow: hidden;">
-        <!-- Title and buttons (fixed height) -->
+      <div class="flex-1 flex flex-col gap-4 min-w-0" style="overflow: hidden;">
+        <!-- Title and buttons -->
         <div class="flex gap-2 shrink-0">
           <input
             id="note-title"
@@ -143,127 +135,12 @@ onBeforeUnmount(() => {
           />
           <button
             class="btn btn-square"
-            @click="toggleFullscreen"
-            title="Fullscreen"
-          >
-            <Maximize2 :size="20" />
-          </button>
-          <button
-            class="btn btn-square"
-            @click="openExternal"
-            title="Open externally"
-          >
-            <ExternalLink :size="20" />
-          </button>
-          <button
-            class="btn btn-square"
-            @click="removeAttachment"
-            title="Remove attachment"
-          >
-            <X :size="20" />
-          </button>
-          <button
-            class="btn btn-square"
-            :disabled="!current.title || !!attachment"
-            @click="selectAndAddFile"
-            title="Add attachment"
-          >
-            <Paperclip :size="20" />
-          </button>
-          <button
-            class="btn btn-square"
             :disabled="!current.title"
             @click="deleteNote"
             title="Delete note"
           >
             <Trash2 :size="20" />
           </button>
-        </div>
-
-        <!-- Attachment preview (takes remaining space minus 15vh for textarea) -->
-        <div class="flex-1 min-h-0 flex items-start justify-start overflow-hidden">
-          <img
-            v-if="attachment && attachmentUrl"
-            :src="attachmentUrl"
-            class="max-w-full max-h-full object-contain object-left-top"
-            :alt="attachment.filename"
-          />
-        </div>
-
-        <!-- Note body below attachment (fixed 15vh) -->
-        <div class="relative shrink-0" style="height: 15vh;">
-          <div
-            v-if="searchIsOpen"
-            ref="overlayRef"
-            class="absolute inset-0 overflow-hidden pointer-events-none whitespace-pre-wrap break-words text-transparent z-0 rounded-[var(--radius-field)]"
-            style="border: var(--border) solid transparent; padding-block: .5rem; padding-inline: .75rem; font-size: max(var(--font-size, .875rem), .875rem); line-height: inherit; background-color: var(--color-base-100);"
-            v-html="highlightedHtml"
-          />
-          <textarea
-            ref="textareaRef"
-            id="note-body"
-            :value="current.body"
-            @input="current.body = ($event.target as HTMLTextAreaElement).value"
-            @scroll="syncOverlayScroll"
-            class="textarea textarea-bordered resize-none w-full h-full relative z-[1]"
-            :class="{ '!bg-transparent': searchIsOpen }"
-            placeholder="Start typing..."
-          />
-        </div>
-      </div>
-
-      <!-- When no showable attachment OR no attachment at all -->
-      <div v-else class="flex-1 flex flex-col gap-4 min-w-0" style="overflow: hidden;">
-        <!-- Title and buttons (fixed height) -->
-        <div class="flex gap-2 shrink-0">
-          <input
-            id="note-title"
-            :value="current.title"
-            @input="current.title = ($event.target as HTMLInputElement).value"
-            type="text"
-            class="input w-full flex-1"
-            placeholder="Untitled"
-          />
-          <button
-            v-if="attachment"
-            class="btn btn-square"
-            @click="openExternal"
-            title="Open externally"
-          >
-            <ExternalLink :size="20" />
-          </button>
-          <button
-            v-if="attachment"
-            class="btn btn-square"
-            @click="removeAttachment"
-            title="Remove attachment"
-          >
-            <X :size="20" />
-          </button>
-          <button
-            class="btn btn-square"
-            :disabled="!current.title || !!attachment"
-            @click="selectAndAddFile"
-            title="Add attachment"
-          >
-            <Paperclip :size="20" />
-          </button>
-          <button
-            class="btn btn-square"
-            :disabled="!current.title"
-            @click="deleteNote"
-            title="Delete note"
-          >
-            <Trash2 :size="20" />
-          </button>
-        </div>
-
-        <!-- Non-showable attachment card -->
-        <div
-          v-if="attachment && !isShowable"
-          class="flex items-center gap-2 p-2 border border-base-200 rounded shrink-0"
-        >
-          <span class="text-sm flex-1">{{ attachment.filename }}</span>
         </div>
 
         <!-- Note body -->
@@ -287,20 +164,6 @@ onBeforeUnmount(() => {
           />
         </div>
       </div>
-    </div>
-
-    <!-- Fullscreen overlay -->
-    <div
-      v-if="isFullscreen && attachment && attachmentUrl"
-      class="fixed inset-0 bg-black z-50 flex items-center justify-center p-4 cursor-pointer"
-      @click="toggleFullscreen"
-    >
-      <img
-        v-if="isShowable && attachmentUrl"
-        :src="attachmentUrl"
-        class="max-w-full max-h-full object-contain"
-        :alt="attachment.filename"
-      />
     </div>
 
     <SearchBar

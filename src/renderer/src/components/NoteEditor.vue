@@ -1,18 +1,16 @@
 <script setup lang="ts">
-import { Trash2, Paperclip } from 'lucide-vue-next'
+import { Trash2 } from 'lucide-vue-next'
 
 defineProps<{
   title: string
   body: string
   hasTitle: boolean
-  hasAttachment: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'update:title', value: string): void
   (e: 'update:body', value: string): void
   (e: 'delete'): void
-  (e: 'add-attachment'): void
 }>()
 </script>
 
@@ -28,14 +26,6 @@ const emit = defineEmits<{
         class="input w-full flex-1"
         placeholder="Untitled"
       />
-      <button
-        class="btn btn-square"
-        :disabled="!hasTitle || hasAttachment"
-        @click="emit('add-attachment')"
-        title="Add attachment"
-      >
-        <Paperclip :size="20" />
-      </button>
       <button
         class="btn btn-square"
         :disabled="!hasTitle"

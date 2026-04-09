@@ -12,11 +12,6 @@ declare global {
       deleteNote: (title: string) => Promise<any>
       onNotesChanged: (callback: (payload: { eventType: string; title: string }) => void) => void
       removeNotesChanged: (callback: (...args: any[]) => void) => void
-      getAttachment: (noteTitle: string) => Promise<any>
-      selectAndAddAttachment: (noteTitle: string) => Promise<any>
-      removeAttachment: (noteTitle: string) => Promise<any>
-      openAttachment: (noteTitle: string) => Promise<any>
-      getAttachmentUrl: (noteTitle: string) => Promise<any>
     }
   }
 }
