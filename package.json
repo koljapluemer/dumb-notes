@@ -14,7 +14,7 @@
     "build": "npm run build:renderer && npm run build:main && npm run copy:renderer",
     "package:deb": "npm run build && electron-builder --linux deb",
     "package:appimage": "npm run build && electron-builder --linux AppImage",
-    "start": "npm run build:main && ELECTRON_DISABLE_SANDBOX=1 electron .",
+    "start": "npm run build && ELECTRON_DISABLE_SANDBOX=1 electron .",
     "clean": "rm -rf dist release src/renderer/dist",
     "typecheck": "vue-tsc --noEmit --project src/renderer/tsconfig.app.json",
     "test": "echo \"Error: no test specified\" && exit 1"
